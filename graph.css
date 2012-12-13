@@ -3,6 +3,11 @@
     stroke-width: 1.5px;
 }
 
+.link.matching {
+    stroke: #F33405;
+    stroke-width: 2.0px;
+}
+
 .node {
     fill: #000;
     stroke: #fff;
