@@ -10,7 +10,7 @@ function Graph() {
 
     this.nodes = [];
     this.links = [];
-    this.matching = [];
+    this.matching = {};
 
     var force = d3.layout.force()
         .nodes(this.nodes)
@@ -29,12 +29,13 @@ function Graph() {
         match = svg.selectAll(".link .matching");
 
     this.update = function() {
-        edges = force.links().filter(function(edge) {
-            return this.matching.indexOf(edge) < 0;
+
+        var edges = force.links().filter(function(edge) {
+            return !(this.matchingHash(edge) in this.matching);
         }.bind(this));
 
-        matchingEdges = force.links().filter(function(edge) {
-            return this.matching.indexOf(edge) >= 0;
+        var matchingEdges = force.links().filter(function(edge) {
+            return this.matchingHash(edge) in this.matching;
         }.bind(this));
 
         link = link.data(edges, function(d) {return d.source.id + "-" + d.target.id; });
@@ -67,44 +68,6 @@ function Graph() {
                 .attr("cy", function(d) { return d.y; });
     }
 
-    this.update();
-}
-
-Graph.prototype.addNode = function(id) {
-    this.nodes.push({id: id});
-    this.update();
-}
-
-Graph.prototype.removeNode = function(id) {
-    var index = this.indexOfNode(id);
-
-    if (index < 0) return;
-
-    // Remove nodes and related links.
-    this.nodes.splice(index, 1);
-    this.indicesOfLinks(id).forEach(function(index) {
-        this.links.splice(index, 1);
-    }.bind(this));
-
-    this.update();
-}
-
-Graph.prototype.addLink = function(link) {
-    a = this.findNode(link[0]);
-    b = this.findNode(link[1]);
-    if (!a || !b) return;
-
-    this.links.push({source:a, target:b});
-    this.update();
-}
-
-Graph.prototype.removeLink = function(a, b) {
-    var index = this.indexOfLink(a,b);
-
-    if (index < 0) return;
-
-    this.links.splice(index, 1);
-    
     this.update();
 }
 
@@ -147,13 +110,68 @@ Graph.prototype.indicesOfLinks = function(id) {
     return indices;
 }
 
-Graph.prototype.updateMatching = function(links) {
-    this.matching = links
-        .filter(function(link) { return this.indexOfLink(link[0], link[1]) >= 0 }.bind(this))
-        .map(function(link) { return this.links[this.indexOfLink(link[0], link[1])]; }.bind(this));
+Graph.prototype.addNode = function(id) {
+    this.nodes.push({id: id});
     this.update();
 }
-    
+
+Graph.prototype.removeNode = function(id) {
+    var index = this.indexOfNode(id);
+
+    if (index < 0) return;
+
+    // Remove nodes and related links.
+    this.nodes.splice(index, 1);
+    this.indicesOfLinks(id).forEach(function(index) {
+        var link = this.links[index];
+        this.removeLink(link.source.id, link.target.id);
+    }.bind(this));
+
+    this.update();
+}
+
+Graph.prototype.addLink = function(link) {
+    a = this.findNode(link[0]);
+    b = this.findNode(link[1]);
+    if (!a || !b) return;
+
+    this.links.push({source:a, target:b});
+    this.update();
+}
+
+Graph.prototype.removeLink = function(link) {
+    var index = this.indexOfLink(link[0],link[1]);
+
+    if (index < 0) return;
+
+    delete this.matching[this.matchingHash(this.links[index])];
+    this.links.splice(index, 1);
+    this.update();
+}
+
+Graph.prototype.matchingHash = function(link) {
+    return link.source.id + "-" + link.target.id;
+}
+
+Graph.prototype.addMatchingEdge = function(link) {
+    if (this.indexOfLink(link[0], link[1]) < 0) return;
+
+    link = this.links[this.indexOfLink(link[0], link[1])];
+    this.matching[this.matchingHash(link)] = true;
+
+    this.update();
+}
+
+Graph.prototype.removeMatchingEdge = function(link) {
+    var index = this.indexOfLink(link[0], link[1]);
+    if (index < 0) return;
+
+    link = this.links[index];
+    delete this.matching[link.source.id + "-" + link.target.id];
+
+    this.update();
+}
+
 graph = new Graph();
 
 graph.addNode("A");
@@ -167,4 +185,6 @@ graph.addLink(["A", "C"]);
 graph.addLink(["A", "D"]);
 graph.addLink(["D", "E"]);
 graph.addLink(["C", "F"]);
-graph.updateMatching([["A", "B"], ["D", "E"], ["C", "F"]]);
+graph.addMatchingEdge(["A", "B"]);
+graph.addMatchingEdge(["D", "E"]);
+graph.addMatchingEdge(["C", "F"]);
