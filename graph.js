@@ -108,7 +108,7 @@ Graph.prototype.indexOfNode = function(id) {
 Graph.prototype.indexOfLink = function(source, target) {
     for (var i = 0; i < this.links.length; i++) {
         var link = this.links[i];
-        if (link.source.id === source || link.target.id === target) {
+        if (link.source.id === source && link.target.id === target) {
             return i;
         }
     }
@@ -129,7 +129,10 @@ Graph.prototype.indicesOfLinks = function(id) {
 }
 
 Graph.prototype.addNode = function(id) {
-    this.nodes.push({id: id});
+    this.nodes.push({
+        id: id,
+        children: []
+    });
     this.update();
 }
 
@@ -140,13 +143,15 @@ Graph.prototype.removeNode = function(id) {
 
     // Remove nodes and related links.
     var node = this.nodes[index];
+
+    while(node.children.length != 0) {
+        var child = node.children[0];
+        this.removeLink([node.id, child.id]);
+        this.removeLink([child.id, node.id]);
+    }
+
     this.removeCoverNode(node.id);
     this.nodes.splice(index, 1);
-
-    this.indicesOfLinks(id).forEach(function(index) {
-        var link = this.links[index];
-        this.removeLink([link.source.id, link.target.id]);
-    }.bind(this));
 
     this.update();
 }
@@ -156,17 +161,29 @@ Graph.prototype.addLink = function(link) {
     b = this.findNode(link[1]);
     if (!a || !b) return;
 
+    a.children.push(b);
+    b.children.push(a);
     this.links.push({source:a, target:b});
     this.update();
 }
 
 Graph.prototype.removeLink = function(link) {
     var index = this.indexOfLink(link[0],link[1]);
+    var a = this.findNode(link[0]);
+    var b = this.findNode(link[1]);
 
-    if (index < 0) return;
+    if (index < 0 || !a || !b) return;
 
+    // Remove from matching list.
     delete this.matching[this.matchingHash(this.links[index])];
+
+    // Remove from child lists.
+    a.children.splice(a.children.indexOf(b), 1);
+    b.children.splice(b.children.indexOf(a), 1);
+
+    // Remove from edge list.
     this.links.splice(index, 1);
+
     this.update();
 }
 
