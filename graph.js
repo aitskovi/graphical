@@ -249,7 +249,39 @@ graph.addLink(["A", "C"]);
 graph.addLink(["A", "D"]);
 graph.addLink(["D", "E"]);
 graph.addLink(["C", "F"]);
-graph.addMatchingEdge(["A", "B"]);
+/*graph.addMatchingEdge(["A", "B"]);
 graph.addMatchingEdge(["D", "E"]);
 graph.addMatchingEdge(["C", "F"]);
-graph.addCoverNode("A");
+graph.addCoverNode("A");*/
+
+/**
+ * Run a depth first search for the id.
+ */
+function dfs(id, graph) {
+    var i = 0;
+    var seen = {};
+
+    function dfs(id, start) {
+        if (start.id in seen) return null;
+
+        seen[start.id] = true;
+        setTimeout(function(){
+            graph.addCoverNode(start.id);
+        }, i * 200);
+        i++;
+
+        if (start.id == id) return start;
+
+        return start.children.reduce(function(result, child) {
+            if (result) return result;
+
+            setTimeout(function() {
+                graph.addMatchingEdge([start.id, child.id]);
+            }, i * 200);
+            i++;
+            return dfs(id, child);
+        }, null);
+    }
+
+    return dfs(id, graph.nodes[0]);
+}
