@@ -9,8 +9,11 @@
 }
 
 .node {
-    fill: #000;
     stroke: #fff;
     stroke-width: 1.5px;
     fill: #1f77b4;
+}
+
+.node.cover {
+    fill: #339933;
 }

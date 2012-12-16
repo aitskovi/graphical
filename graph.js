@@ -11,6 +11,7 @@ function Graph() {
     this.nodes = [];
     this.links = [];
     this.matching = {};
+    this.cover = {};
 
     var force = d3.layout.force()
         .nodes(this.nodes)
@@ -24,8 +25,9 @@ function Graph() {
         .attr("width", width)
         .attr("height", height);
 
-    var node = svg.selectAll(".node"),
-        link = svg.selectAll(".link .non-matching"),
+    var node = svg.selectAll(".node :not(.cover)"),
+        cover = svg.selectAll(".node .cover"),
+        link = svg.selectAll(".link :not(.matching)"),
         match = svg.selectAll(".link .matching");
 
     this.update = function() {
@@ -38,17 +40,29 @@ function Graph() {
             return this.matchingHash(edge) in this.matching;
         }.bind(this));
 
+        var nodes = force.nodes().filter(function(node) {
+            return !(this.coverHash(node) in this.cover);
+        }.bind(this));
+
+        var coverNodes = force.nodes().filter(function(node) {
+            return this.coverHash(node) in this.cover;
+        }.bind(this));
+
         link = link.data(edges, function(d) {return d.source.id + "-" + d.target.id; });
-        link.enter().insert("line", ".node").attr("class", "link non-matching");
+        link.enter().insert("line", ".node").attr("class", "link");
         link.exit().remove();
 
         match = match.data(matchingEdges, function(d) {return d.source.id + "-" + d.target.id; });
         match.enter().insert("line", ".node").attr("class", "link matching");
         match.exit().remove();
         
-        node = node.data(force.nodes(), function(d) { return d.id; });  
+        node = node.data(nodes, function(d) { return d.id; });
         node.enter().append("circle").attr("class", function(d) { return "node " + d.id; }).attr("r", 8);
         node.exit().remove();
+
+        cover = cover.data(coverNodes, function(d) { return d.id; });
+        cover.enter().append("circle").attr("class", function(d) { return "node cover " + d.id; }).attr("r", 8);
+        cover.exit().remove();
 
         force.start();
     }
@@ -66,6 +80,10 @@ function Graph() {
 
             node.attr("cx", function(d) { return d.x; })
                 .attr("cy", function(d) { return d.y; });
+
+            cover.attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+
     }
 
     this.update();
@@ -121,10 +139,13 @@ Graph.prototype.removeNode = function(id) {
     if (index < 0) return;
 
     // Remove nodes and related links.
+    var node = this.nodes[index];
+    this.removeCoverNode(node.id);
     this.nodes.splice(index, 1);
+
     this.indicesOfLinks(id).forEach(function(index) {
         var link = this.links[index];
-        this.removeLink(link.source.id, link.target.id);
+        this.removeLink([link.source.id, link.target.id]);
     }.bind(this));
 
     this.update();
@@ -172,6 +193,32 @@ Graph.prototype.removeMatchingEdge = function(link) {
     this.update();
 }
 
+Graph.prototype.coverHash = function(node) {
+    return node.id;
+}
+
+Graph.prototype.addCoverNode = function(node) {
+    var index = this.indexOfNode(node);
+
+    if (index < 0) return;
+
+    var node = this.nodes[index];
+    this.cover[this.coverHash(node)] = true;
+
+    this.update();
+}
+
+Graph.prototype.removeCoverNode = function(node) {
+    var index = this.indexOfNode(node);
+
+    if (index < 0) return;
+
+    var node = this.nodes[index];
+    delete this.cover[this.coverHash(node)];
+
+    this.update();
+}
+
 graph = new Graph();
 
 graph.addNode("A");
@@ -188,3 +235,4 @@ graph.addLink(["C", "F"]);
 graph.addMatchingEdge(["A", "B"]);
 graph.addMatchingEdge(["D", "E"]);
 graph.addMatchingEdge(["C", "F"]);
+graph.addCoverNode("A");
