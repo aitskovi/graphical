@@ -82,10 +82,13 @@ function Graph() {
 
     var color = d3.scale.category20();
 
+
     this.nodes = [];
     this.links = [];
     this.matching = {};
     this.cover = {};
+
+    this.queue = new WorkerQueue(this, 250);
 
     var force = d3.layout.force()
         .nodes(this.nodes)
@@ -100,12 +103,12 @@ function Graph() {
         .attr("height", height);
 
     var node = svg.selectAll(".node :not(.cover)"),
-        cover = svg.selectAll(".node .cover"),
+        cov = svg.selectAll(".node .cover"),
         link = svg.selectAll(".link :not(.matching)"),
         match = svg.selectAll(".link .matching");
 
     this.update = function() {
-
+        // TODO: Change filter to a splitting function.
         var edges = force.links().filter(function(edge) {
             return !(this.matchingHash(edge) in this.matching);
         }.bind(this));
@@ -134,9 +137,9 @@ function Graph() {
         node.enter().append("circle").attr("class", function(d) { return "node " + d.id; }).attr("r", 8);
         node.exit().remove();
 
-        cover = cover.data(coverNodes, function(d) { return d.id; });
-        cover.enter().append("circle").attr("class", function(d) { return "node cover " + d.id; }).attr("r", 8);
-        cover.exit().remove();
+        cov = cov.data(coverNodes, function(d) { return d.id; });
+        cov.enter().append("circle").attr("class", function(d) { return "node cover " + d.id; }).attr("r", 8);
+        cov.exit().remove();
 
         force.start();
     }
@@ -155,12 +158,9 @@ function Graph() {
             node.attr("cx", function(d) { return d.x; })
                 .attr("cy", function(d) { return d.y; });
 
-            cover.attr("cx", function(d) { return d.x; })
+            cov.attr("cx", function(d) { return d.x; })
                 .attr("cy", function(d) { return d.y; });
-
     }
-
-    this.update();
 }
 
 Graph.prototype.findNode = function(id) {
@@ -203,62 +203,81 @@ Graph.prototype.indicesOfLinks = function(id) {
 }
 
 Graph.prototype.addNode = function(id) {
-    this.nodes.push({
-        id: id,
-        children: []
-    });
-    this.update();
+    var add = function() {
+        this.nodes.push({
+            id: id,
+            children: []
+        });
+
+        this.update();
+    };
+
+    return this.queue.push(add);
 }
 
 Graph.prototype.removeNode = function(id) {
-    var index = this.indexOfNode(id);
+    var remove = function() {
+        var index = this.indexOfNode(id);
 
-    if (index < 0) return;
+        if (index < 0) return;
 
-    // Remove nodes and related links.
-    var node = this.nodes[index];
+        // Remove nodes and related links.
+        var node = this.nodes[index];
 
-    while(node.children.length != 0) {
-        var child = node.children[0];
-        this.removeLink([node.id, child.id]);
-        this.removeLink([child.id, node.id]);
-    }
+        while(node.children.length != 0) {
+            var child = node.children[0];
+            this.removeLink([node.id, child.id]);
+            this.removeLink([child.id, node.id]);
+        }
 
-    this.removeCoverNode(node.id);
-    this.nodes.splice(index, 1);
+        this.removeCoverNode(node.id);
+        this.nodes.splice(index, 1);
 
-    this.update();
+        this.update();
+    };
+
+    return this.queue.push(remove);
 }
 
 Graph.prototype.addLink = function(link) {
-    a = this.findNode(link[0]);
-    b = this.findNode(link[1]);
-    if (!a || !b) return;
+    var add = function() {
+        a = this.findNode(link[0]);
+        b = this.findNode(link[1]);
+        if (!a || !b) return;
 
-    a.children.push(b);
-    b.children.push(a);
-    this.links.push({source:a, target:b});
-    this.update();
+        a.children.push(b);
+        b.children.push(a);
+        this.links.push({source:a, target:b});
+
+        this.update();
+    };
+
+    return this.queue.push(add);
 }
 
-Graph.prototype.removeLink = function(link) {
-    var index = this.indexOfLink(link[0],link[1]);
-    var a = this.findNode(link[0]);
-    var b = this.findNode(link[1]);
+Graph.prototype.removeLink = function(link, disanimate) {
+    var remove = function() {
+        var index = this.indexOfLink(link[0],link[1]);
+        var a = this.findNode(link[0]);
+        var b = this.findNode(link[1]);
 
-    if (index < 0 || !a || !b) return;
+        if (index < 0 || !a || !b) return;
 
-    // Remove from matching list.
-    delete this.matching[this.matchingHash(this.links[index])];
+        // Remove from matching list.
+        delete this.matching[this.matchingHash(this.links[index])];
 
-    // Remove from child lists.
-    a.children.splice(a.children.indexOf(b), 1);
-    b.children.splice(b.children.indexOf(a), 1);
+        // Remove from child lists.
+        a.children.splice(a.children.indexOf(b), 1);
+        b.children.splice(b.children.indexOf(a), 1);
 
-    // Remove from edge list.
-    this.links.splice(index, 1);
+        // Remove from edge list.
+        this.links.splice(index, 1);
 
-    this.update();
+        this.update();
+    };
+
+    return this.queue.push(remove);
+
 }
 
 Graph.prototype.matchingHash = function(link) {
