@@ -1,3 +1,77 @@
+function WorkerQueue(context, interval) {
+    var queue = [];
+
+    /**
+     * Add some work to the queue and return a promise
+     * that is filled once that work is complete.
+     */
+    function push(action) {
+        var p = new Promise();
+
+        queue.push({
+            promise: p,
+            action: action
+        });
+
+        return p;
+    }
+
+    function work() {
+        if (queue.length == 0) return;
+
+        var next = queue.shift();
+        next.action.apply(context);
+        next.promise.resolve(true);
+    }
+
+    // Start the queue working.
+    setInterval(work, interval || 200);
+
+    return {
+        push: push,
+    };
+}
+
+var Promise = function() {
+    var pending = [], result;
+
+    function then(callback) {
+        var p = new Promise();
+        var action = function() {
+            var temp = callback(result);
+            p.resolve(temp);
+        }
+
+        if (!pending) {
+            action();
+        } else {
+            pending.push(action);
+        }
+
+        return p;
+    }
+
+    function resolve(value) {
+        result = value;
+
+        pending.forEach(function(action) {
+                action();
+        });
+
+        return this;
+    }
+
+    return {
+        then: then,
+        resolve: resolve
+    }
+}
+
+Promise.value = function(value) {
+    var p = new Promise();
+    return p.resolve(value);
+}
+
 /**
  * Graph wrapper based off of http://bl.ocks.org/1095795
  */
