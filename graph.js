@@ -30,6 +30,9 @@ function WorkerQueue(context, interval) {
     return {
         push: push,
     };
+
+    // TODO:Investigate potential bugs since we're not waiting for computation to finish.
+    // What if something takes more than 200ms?
 }
 
 var Promise = function() {
@@ -103,7 +106,7 @@ function Graph() {
         .attr("height", height);
 
     var node = svg.selectAll(".node :not(.cover)"),
-        cov = svg.selectAll(".node .cover"),
+        cover = svg.selectAll(".node .cover"),
         link = svg.selectAll(".link :not(.matching)"),
         match = svg.selectAll(".link .matching");
 
@@ -137,9 +140,9 @@ function Graph() {
         node.enter().append("circle").attr("class", function(d) { return "node " + d.id; }).attr("r", 8);
         node.exit().remove();
 
-        cov = cov.data(coverNodes, function(d) { return d.id; });
-        cov.enter().append("circle").attr("class", function(d) { return "node cover " + d.id; }).attr("r", 8);
-        cov.exit().remove();
+        cover = cover.data(coverNodes, function(d) { return d.id; });
+        cover.enter().append("circle").attr("class", function(d) { return "node cover " + d.id; }).attr("r", 8);
+        cover.exit().remove();
 
         force.start();
     }
@@ -158,8 +161,16 @@ function Graph() {
             node.attr("cx", function(d) { return d.x; })
                 .attr("cy", function(d) { return d.y; });
 
-            cov.attr("cx", function(d) { return d.x; })
+            cover.attr("cx", function(d) { return d.x; })
                 .attr("cy", function(d) { return d.y; });
+    }
+}
+
+Graph.prototype.mutate = function(action, immediate) {
+    if (immediate) {
+        return Future.value(action.apply(this));
+    } else {
+        return this.queue.push(action);
     }
 }
 
@@ -202,7 +213,7 @@ Graph.prototype.indicesOfLinks = function(id) {
     return indices;
 }
 
-Graph.prototype.addNode = function(id) {
+Graph.prototype.addNode = function(id, immediate) {
     var add = function() {
         this.nodes.push({
             id: id,
@@ -212,10 +223,10 @@ Graph.prototype.addNode = function(id) {
         this.update();
     };
 
-    return this.queue.push(add);
+    return this.mutate(add, immediate);
 }
 
-Graph.prototype.removeNode = function(id) {
+Graph.prototype.removeNode = function(id, immediate) {
     var remove = function() {
         var index = this.indexOfNode(id);
 
@@ -226,20 +237,20 @@ Graph.prototype.removeNode = function(id) {
 
         while(node.children.length != 0) {
             var child = node.children[0];
-            this.removeLink([node.id, child.id]);
-            this.removeLink([child.id, node.id]);
+            this.removeLink([node.id, child.id], true);
+            this.removeLink([child.id, node.id], true);
         }
 
-        this.removeCoverNode(node.id);
+        this.removeCoverNode(node.id, true);
         this.nodes.splice(index, 1);
 
         this.update();
     };
 
-    return this.queue.push(remove);
+    return this.mutate(remove, immediate);
 }
 
-Graph.prototype.addLink = function(link) {
+Graph.prototype.addLink = function(link, immediate) {
     var add = function() {
         a = this.findNode(link[0]);
         b = this.findNode(link[1]);
@@ -252,10 +263,10 @@ Graph.prototype.addLink = function(link) {
         this.update();
     };
 
-    return this.queue.push(add);
+    return this.mutate(add, immediate);
 }
 
-Graph.prototype.removeLink = function(link, disanimate) {
+Graph.prototype.removeLink = function(link, immediate) {
     var remove = function() {
         var index = this.indexOfLink(link[0],link[1]);
         var a = this.findNode(link[0]);
@@ -276,57 +287,72 @@ Graph.prototype.removeLink = function(link, disanimate) {
         this.update();
     };
 
-    return this.queue.push(remove);
-
+    return this.mutate(remove, immediate);
 }
 
 Graph.prototype.matchingHash = function(link) {
     return link.source.id + "-" + link.target.id;
 }
 
-Graph.prototype.addMatchingEdge = function(link) {
-    if (this.indexOfLink(link[0], link[1]) < 0) return;
+Graph.prototype.addMatchingEdge = function(link, immediate) {
+    var add = function() {
+        if (this.indexOfLink(link[0], link[1]) < 0) return;
 
-    link = this.links[this.indexOfLink(link[0], link[1])];
-    this.matching[this.matchingHash(link)] = true;
+        link = this.links[this.indexOfLink(link[0], link[1])];
+        this.matching[this.matchingHash(link)] = true;
 
-    this.update();
+        this.update();
+    };
+
+    return this.mutate(add, immediate);
 }
 
-Graph.prototype.removeMatchingEdge = function(link) {
-    var index = this.indexOfLink(link[0], link[1]);
-    if (index < 0) return;
+Graph.prototype.removeMatchingEdge = function(link, immediate) {
+    var remove = function() {
+        var index = this.indexOfLink(link[0], link[1]);
+        if (index < 0) return;
 
-    link = this.links[index];
-    delete this.matching[link.source.id + "-" + link.target.id];
+        link = this.links[index];
+        delete this.matching[link.source.id + "-" + link.target.id];
 
-    this.update();
+        this.update();
+    };
+
+    return this.mutate(remove, immediate);
 }
 
 Graph.prototype.coverHash = function(node) {
     return node.id;
 }
 
-Graph.prototype.addCoverNode = function(node) {
-    var index = this.indexOfNode(node);
+Graph.prototype.addCoverNode = function(node, immediate) {
+    var add = function() {
+        var index = this.indexOfNode(node);
 
-    if (index < 0) return;
+        if (index < 0) return;
 
-    var node = this.nodes[index];
-    this.cover[this.coverHash(node)] = true;
+        var node = this.nodes[index];
+        this.cover[this.coverHash(node)] = true;
 
-    this.update();
+        this.update();
+    };
+
+    return this.mutate(add, immediate);
 }
 
-Graph.prototype.removeCoverNode = function(node) {
-    var index = this.indexOfNode(node);
+Graph.prototype.removeCoverNode = function(node, immediate) {
+    var remove = function() {
+        var index = this.indexOfNode(node);
 
-    if (index < 0) return;
+        if (index < 0) return;
 
-    var node = this.nodes[index];
-    delete this.cover[this.coverHash(node)];
+        var node = this.nodes[index];
+        delete this.cover[this.coverHash(node)];
 
-    this.update();
+        this.update();
+    };
+
+    return this.mutate(remove, immediate);
 }
 
 graph = new Graph();
@@ -358,20 +384,16 @@ function dfs(id, graph) {
         if (start.id in seen) return null;
 
         seen[start.id] = true;
-        setTimeout(function(){
-            graph.addCoverNode(start.id);
-        }, i * 200);
-        i++;
+        graph.addCoverNode(start.id);
 
         if (start.id == id) return start;
 
         return start.children.reduce(function(result, child) {
             if (result) return result;
 
-            setTimeout(function() {
-                graph.addMatchingEdge([start.id, child.id]);
-            }, i * 200);
+            graph.addMatchingEdge([start.id, child.id]);
             i++;
+
             return dfs(id, child);
         }, null);
     }
