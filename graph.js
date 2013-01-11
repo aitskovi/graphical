@@ -325,9 +325,9 @@ Graph.prototype.coverHash = function(node) {
     return node.id;
 }
 
-Graph.prototype.addCoverNode = function(node, immediate) {
+Graph.prototype.addCoverNode = function(id, immediate) {
     var add = function() {
-        var index = this.indexOfNode(node);
+        var index = this.indexOfNode(id);
 
         if (index < 0) return;
 
@@ -340,9 +340,9 @@ Graph.prototype.addCoverNode = function(node, immediate) {
     return this.mutate(add, immediate);
 }
 
-Graph.prototype.removeCoverNode = function(node, immediate) {
+Graph.prototype.removeCoverNode = function(id, immediate) {
     var remove = function() {
-        var index = this.indexOfNode(node);
+        var index = this.indexOfNode(id);
 
         if (index < 0) return;
 
@@ -368,10 +368,6 @@ graph.addLink(["A", "C"]);
 graph.addLink(["A", "D"]);
 graph.addLink(["D", "E"]);
 graph.addLink(["C", "F"]);
-/*graph.addMatchingEdge(["A", "B"]);
-graph.addMatchingEdge(["D", "E"]);
-graph.addMatchingEdge(["C", "F"]);
-graph.addCoverNode("A");*/
 
 /**
  * Run a depth first search for the id.
