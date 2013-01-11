@@ -1,3 +1,10 @@
+/**
+ * Simple Worker Queue.
+ *
+ * A simple queue that performs actions out of itself every "interval"
+ * amount of time. A context for the Queue is provided at creation time.
+ * Every action executed by the queue uses that context as "this",
+ */
 function WorkerQueue(context, interval) {
     var queue = [];
 
@@ -35,6 +42,11 @@ function WorkerQueue(context, interval) {
     // What if something takes more than 200ms?
 }
 
+/**
+ * Simple Promise Implementation.
+ *
+ * Promise implementation with only chaining and no errors.
+ */
 var Promise = function() {
     var pending = [], result;
 
@@ -78,7 +90,6 @@ Promise.value = function(value) {
 /**
  * Graph wrapper based off of http://bl.ocks.org/1095795
  */
-
 function Graph() {
     var width = 960,
         height = 500;
@@ -355,20 +366,6 @@ Graph.prototype.removeCoverNode = function(id, immediate) {
     return this.mutate(remove, immediate);
 }
 
-graph = new Graph();
-
-graph.addNode("A");
-graph.addNode("B");
-graph.addNode("C");
-graph.addNode("D");
-graph.addNode("E");
-graph.addNode("F");
-graph.addLink(["A", "B"]);
-graph.addLink(["A", "C"]);
-graph.addLink(["A", "D"]);
-graph.addLink(["D", "E"]);
-graph.addLink(["C", "F"]);
-
 /**
  * Run a depth first search for the id.
  */
@@ -396,3 +393,17 @@ function dfs(id, graph) {
 
     return dfs(id, graph.nodes[0]);
 }
+
+graph = new Graph();
+
+graph.addNode("A");
+graph.addNode("B");
+graph.addNode("C");
+graph.addNode("D");
+graph.addNode("E");
+graph.addNode("F");
+graph.addLink(["A", "B"]);
+graph.addLink(["A", "C"]);
+graph.addLink(["A", "D"]);
+graph.addLink(["D", "E"]);
+graph.addLink(["C", "F"]);
