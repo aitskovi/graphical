@@ -99,6 +99,7 @@ function Graph() {
     var nodes = [],
         edges = [],
         groups = {},
+        groupings = {},
         queue = new WorkerQueue(this, 250);
 
     var force = d3.layout.force()
@@ -113,32 +114,97 @@ function Graph() {
         .attr("width", width)
         .attr("height", height);
 
-    var node = svg.selectAll(".node"),
-        link = svg.selectAll(".link");
+
+    //var node = svg.selectAll(".node"),
+        //link = svg.selectAll(".link");
 
     function update() {
-        link = link.data(force.links(), function(d) {return d.source.id + "-" + d.target.id; });
-        link.enter().insert("line", ".node").attr("class", "link");
-        link.exit().remove();
+        // Splitting across all groupings.
+        var nodeSplit = split(nodes, groups);
+        var edgeSplit = split(edges, groups);
 
-        node = node.data(force.nodes(), function(d) { return d.id; });
-        node.enter().append("circle").attr("class", function(d) { return "node " + d.id; }).attr("r", 8);
-        node.exit().remove();
+        // For each link-grouping combination we update.
+        groupings['link'] = dictMap(function(group, link) {
+            link = link.data(edgeSplit[group], function(d) { return d.source.id + "-" + d.target.id; });
+            link.enter().insert("line", ".node").attr("class", "link" + " " +  group);
+            link.exit().remove();
+            return link;
+        }, groupings['link']);
+
+        // For each node-grouping cominbation we update.
+        groupings['node'] = dictMap(function(group, node) {
+            node = node.data(nodeSplit[group], function(d) { return d.id; });
+            node.enter().append("circle").attr("class", function(d) { return "node " + d.id + " " + group ; }).attr("r", 8);
+            node.exit().remove();
+            return node;
+        }, groupings['node']);
 
         force.start();
     }
-      
+
     function tick() {
+        // For each link-grouping combo set a proper tick.
+        dictForEach(function(group, link) {
             link.attr("x1", function(d) { return d.source.x; })
                 .attr("y1", function(d) { return d.source.y; })
                 .attr("x2", function(d) { return d.target.x; })
                 .attr("y2", function(d) { return d.target.y; });
+        }, groupings['link']);
 
+        // For each node-grouping combo set a proper tick.
+        dictForEach(function(group, node) {
             node.attr("cx", function(d) { return d.x; })
                 .attr("cy", function(d) { return d.y; });
+        }, groupings['node']);
     }
 
-    function mutate (action, immediate) {
+    function refresh() {
+        // Update the groupings.
+        var nodeGroups = dictMap(function(key, value) {
+            return svg.selectAll('.node .' + group);
+        }, groups);
+        var edgeGroups = dictMap(function(key, value) {
+            return svg.selectAll('.link .' + group);
+        }, groups);
+
+        var keys = dictKeys(groups);
+
+        var notall = keys.map(function(key) { return ':not(.' + key + ')'; }).join(' ');
+
+        nodeGroups[''] = svg.selectAll(".node");
+        edgeGroups[''] = svg.selectAll(".node");
+
+        groupings = {
+            'node' : nodeGroups,
+            'link' : edgeGroups
+        };
+    }
+
+    /**
+     * Splits a set of objects based on the groups they belong to.
+     */
+    function split(objects, groups) {
+        var result = dictMap(function() { return []; }, groups);
+        result[''] = [];
+
+        objects.forEach(function(obj) {
+            var data = obj.id ? obj.id : [obj.source, obj.target];
+            var key = hash(data);
+            for (group in groups) {
+                if (groups.hasOwnProperty(group)) {
+                    if (key in groups[group]) {
+                        result[group].push(obj);
+                        return;
+                    }
+                }
+            }
+            result[''].push(obj);
+        });
+
+        return result;
+    }
+
+    function mutate(action, immediate) {
         var updated = function() {
             var result = action.apply(this);
             force.nodes(nodes).links(edges);
@@ -153,7 +219,7 @@ function Graph() {
         }
     }
 
-     function indexOfNode(id) {
+    function indexOfNode(id) {
         for (var i = 0; i < nodes.length; i++) {
             if (nodes[i].id === id) {
                 return i;
@@ -161,18 +227,29 @@ function Graph() {
         }
 
         return -1;
-     }
+    }
 
-     function indexOfEdge(source, target) {
-         for (var i = 0; i < links.length; i++) {
-             var link = links[i];
-             if (link.source.id === source && link.target.id === target) {
-                 return i;
-             }
-         }
+    function indexOfEdge(edge) {
+        var source = edge[0],
+            target = edge[1];
 
-         return -1;
-     }
+        for (var i = 0; i < links.length; i++) {
+            var link = links[i];
+            if (link.source.id === source && link.target.id === target) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    function hash(obj) {
+        if (obj instanceof Array) {
+            return obj.sort().join('-');
+        }
+
+        return obj;
+    }
 
     function add(ids) {
         if (!(ids instanceof Array)) {
@@ -228,7 +305,7 @@ function Graph() {
         if (!(links[0] instanceof Array)) links = [links];
 
         links.forEach(function(link) {
-            var index = indexOfEdge(link[0],link[1]);
+            var index = indexOfEdge(link);
             var a = indexOfNode(link[0]);
             var b = indexOfNode(link[1]);
 
@@ -247,92 +324,102 @@ function Graph() {
         });
     }
 
+    function group(objects, group) {
+        if(!(objects instanceof Array)) objects = [objects];
+        else if (objects.length == 0) return;
+        else if (objects[0] instanceof Array) objects = [objects];
+
+        objects.forEach(function(obj) {
+            var index = obj instanceof Array ? indexOfEdge(obj) : indexOfNode(obj);
+            if (index < 0) return;
+
+            var key = hash(obj);
+
+            // Remove all other group allegiances.
+            for (group in groups) {
+                if (groups.hasOwnProperty(group)) {
+                    if (key in groups[group]) {
+                        delete groups[group][key];
+                    }
+                }
+            }
+
+            groups[group][key] = true;
+        });
+
+        refresh();
+    }
+
+    function ungroup(objects, group) {
+        if(!(objects instanceof Array)) objects = [objects];
+        else if (objects.length == 0) return;
+        else if (objects[0] instanceof Array) objects = [objects];
+
+        objects.forEach(function(obj) {
+            var index = obj instanceof Array ? indexOfEdge(obj) : indexOfNode(obj);
+            if (index < 0) return;
+
+            var key = hash(obj);
+
+            delete groups[group][key];
+        });
+
+        refresh();
+    }
+
+    refresh();
+
     return {
         nodes: function() { return nodes; },
         edges: function() { return edges; },
         add: function(id, immediate) {
-            mutate(add.bind(this, id), immediate);
+            return mutate(add.bind(this, id), immediate);
         },
         remove: function(id, immediate) {
-            mutate(remove.bind(this, id), immediate);
+            return mutate(remove.bind(this, id), immediate);
         },
         connect: function(links, immediate) {
-            mutate(connect.bind(this, links), immediate);
+            return mutate(connect.bind(this, links), immediate);
         },
         disconnect: function(links, immediate) {
-            mutate(disconnect.bind(this, links), immediate);
+            return mutate(disconnect.bind(this, links), immediate);
         },
-        group: null,
-        ungroup: null,
+        group: function(objects, g, immediate) {
+            return mutate(group.bind(this, objects, g), immediate);
+        },
+        ungroup: function(objects, group, immediate) {
+            return mutate(ungroup.bind(this, objects, group), immediate);
+        },
     }
 }
 
-/*
-Graph.prototype.matchingHash = function(link) {
-    return link.source.id + "-" + link.target.id;
+function dictKeys(dict) {
+    var result = [];
+    for (key in dict) {
+        if (dict.hasOwnProperty(key)) {
+            result.push(key);
+        }
+    }
+    return result;
 }
 
-Graph.prototype.addMatchingEdge = function(link, immediate) {
-    var add = function() {
-        if (this.indexOfLink(link[0], link[1]) < 0) return;
-
-        link = this.links[this.indexOfLink(link[0], link[1])];
-        this.matching[this.matchingHash(link)] = true;
-
-        this.update();
-    };
-
-    return this.mutate(add, immediate);
+function dictMap(fn, dict) {
+    var result = {};
+    for (key in dict) {
+        if (dict.hasOwnProperty(key)) {
+            result[key] = fn(key, dict[key]);
+        }
+    }
+    return result;
 }
 
-Graph.prototype.removeMatchingEdge = function(link, immediate) {
-    var remove = function() {
-        var index = this.indexOfLink(link[0], link[1]);
-        if (index < 0) return;
-
-        link = this.links[index];
-        delete this.matching[link.source.id + "-" + link.target.id];
-
-        this.update();
-    };
-
-    return this.mutate(remove, immediate);
+function dictForEach(fn, dict) {
+    for (key in dict) {
+        if (dict.hasOwnProperty(key)) {
+            fn(key, dict[key]);
+        }
+    }
 }
-
-Graph.prototype.coverHash = function(node) {
-    return node.id;
-}
-
-Graph.prototype.addCoverNode = function(id, immediate) {
-    var add = function() {
-        var index = this.indexOfNode(id);
-
-        if (index < 0) return;
-
-        var node = this.nodes[index];
-        this.cover[this.coverHash(node)] = true;
-
-        this.update();
-    };
-
-    return this.mutate(add, immediate);
-}
-
-Graph.prototype.removeCoverNode = function(id, immediate) {
-    var remove = function() {
-        var index = this.indexOfNode(id);
-
-        if (index < 0) return;
-
-        var node = this.nodes[index];
-        delete this.cover[this.coverHash(node)];
-
-        this.update();
-    };
-
-    return this.mutate(remove, immediate);
-}
-*/
 
 /**
  * Run a depth first search for the id.
@@ -368,3 +455,4 @@ graph.add("A");
 graph.add(["B", "C", "D", "E", "F"]);
 graph.connect(["A", "B"]);
 graph.connect([["A", "C"], ["A", "D"], ["D", "E"], ["C", "F"]]);
+graph.group("A", "cover");
