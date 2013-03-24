@@ -45,7 +45,7 @@ function Graph() {
         // For each node-grouping cominbation we update.
         groupings['node'] = dictMap(function(group, node) {
             node = node.data(nodeSplit[group], function(d) { return d.id; });
-            node.enter().append("circle").attr("class", function(d) { return "node " + d.id + " " + group ; }).attr("r", 8);
+            node.enter().append("circle").attr("class", function(d) { return "node " + d.id + " " + group; }).attr("r", 8);
             node.exit().remove();
             return node;
         }, groupings['node']);
@@ -72,18 +72,18 @@ function Graph() {
     function refresh() {
         // Update the groupings.
         var nodeGroups = dictMap(function(key, value) {
-            return svg.selectAll('.node .' + group);
+            return svg.selectAll('.node .' + key);
         }, groups);
         var edgeGroups = dictMap(function(key, value) {
-            return svg.selectAll('.link .' + group);
+            return svg.selectAll('.link .' + key);
         }, groups);
 
         var keys = dictKeys(groups);
 
         var notall = keys.map(function(key) { return ':not(.' + key + ')'; }).join(' ');
 
-        nodeGroups[''] = svg.selectAll(".node");
-        edgeGroups[''] = svg.selectAll(".node");
+        nodeGroups[''] = svg.selectAll(".node ");
+        edgeGroups[''] = svg.selectAll(".link");
 
         groupings = {
             'node' : nodeGroups,
@@ -240,6 +240,11 @@ function Graph() {
         else if (objects.length == 0) return;
         else if (objects[0] instanceof Array) objects = [objects];
 
+        // Generate the group entry if it doesn't exit.
+        if (!groups[group]) {
+            groups[group] = {};
+        }
+
         objects.forEach(function(obj) {
             var index = obj instanceof Array ? indexOfEdge(obj) : indexOfNode(obj);
             if (index < 0) return;
@@ -255,6 +260,7 @@ function Graph() {
                 }
             }
 
+            // Update this groups' allegiance.
             groups[group][key] = true;
         });
 
@@ -367,3 +373,5 @@ graph.add(["B", "C", "D", "E", "F"]);
 graph.connect(["A", "B"]);
 graph.connect([["A", "C"], ["A", "D"], ["D", "E"], ["C", "F"]]);
 graph.group("A", "cover");
+graph.group("B", "cover");
+graph.group(["A", "B"], "cover");
