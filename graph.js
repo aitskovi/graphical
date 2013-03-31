@@ -99,7 +99,7 @@ function Graph() {
         result[''] = [];
 
         objects.forEach(function(obj) {
-            var data = obj.id ? obj.id : [obj.source, obj.target];
+            var data = obj.id ? obj.id : [obj.source.id, obj.target.id];
             var key = hash(data);
             for (group in groups) {
                 if (groups.hasOwnProperty(group)) {
@@ -144,8 +144,8 @@ function Graph() {
         var source = edge[0],
             target = edge[1];
 
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
+        for (var i = 0; i < edges.length; i++) {
+            var link = edges[i];
             if (link.source.id === source && link.target.id === target) {
                 return i;
             }
@@ -238,7 +238,6 @@ function Graph() {
     function group(objects, group) {
         if(!(objects instanceof Array)) objects = [objects];
         else if (objects.length == 0) return;
-        else if (objects[0] instanceof Array) objects = [objects];
 
         // Generate the group entry if it doesn't exit.
         if (!groups[group]) {
@@ -270,7 +269,6 @@ function Graph() {
     function ungroup(objects, group) {
         if(!(objects instanceof Array)) objects = [objects];
         else if (objects.length == 0) return;
-        else if (objects[0] instanceof Array) objects = [objects];
 
         objects.forEach(function(obj) {
             var index = obj instanceof Array ? indexOfEdge(obj) : indexOfNode(obj);
@@ -372,6 +370,3 @@ graph.add("A");
 graph.add(["B", "C", "D", "E", "F"]);
 graph.connect(["A", "B"]);
 graph.connect([["A", "C"], ["A", "D"], ["D", "E"], ["C", "F"]]);
-graph.group("A", "cover");
-graph.group("B", "cover");
-graph.group(["A", "B"], "cover");
