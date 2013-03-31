@@ -4,36 +4,21 @@ Simple graph algorithm visualizer. This project provides an opaque undirected gr
 
 ## API
 
-### graph.nodes()
+**graph.nodes()** - Returns all the nodes in the graph as an array.
 
-Returns all the nodes in the graph as an array.
+**graph.edges()** - Returns all the edges in the graph as an array.
 
-### graph.edges()
+**graph.add(['id'])** -  Add a set of nodes to the graph.
 
-Returns all the edges in the graph as an array.
+**graph.remove(['id'])** - Remove a set of node from the graph.
 
-### graph.add(['id'])
+**graph.connect([['id', 'id']])** - Connect an arbitrary number of two node pairs.
 
-Add a set of nodes to the graph.
+**graph.disconnect([['id', 'id']])** - Disconnect an arbitrary number of two node pairs.
 
-### graph.remove(['id'])
+**graph.group(['id'], 'group')** - Group an arbitrary set of nodes.
 
-Remove a set of node from the graph.
-
-### graph.connect([['id', 'id']])
-
-Connect an arbitrary number of two node pairs.
-
-### graph.disconnect([['id', 'id']])
-Disconnect an arbitrary number of two node pairs.
-
-### graph.group(['node'] or [['id', 'id']], 'group')
-
-Group an arbitrary set of nodes or edges.
-
-### graph.ungroup(['id'] or [['id', 'id'], 'group')
-
-Remove of a set of nodes or edges from a grouping.
+**graph.ungroup(['id'], 'group')** - Remove of a set of nodes from a grouping.
 
 ## Example
 
