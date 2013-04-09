@@ -39,7 +39,7 @@ function Graph() {
             link = link.data(edgeSplit[group], function(d) { return d.source.id + "-" + d.target.id; });
             link.enter().insert("line", ".node").attr("class", "link" + " " +  group);
             link.exit().remove();
-            return link;
+            return { 'key' : group, 'value' : link };
         }, groupings['link']);
 
         // For each node-grouping cominbation we update.
@@ -47,7 +47,7 @@ function Graph() {
             node = node.data(nodeSplit[group], function(d) { return d.id; });
             node.enter().append("circle").attr("class", function(d) { return "node " + d.id + " " + group; }).attr("r", 8);
             node.exit().remove();
-            return node;
+            return { 'key' : group, 'value' : node };
         }, groupings['node']);
 
         force.start();
@@ -72,10 +72,10 @@ function Graph() {
     function refresh() {
         // Update the groupings.
         var nodeGroups = dictMap(function(key, value) {
-            return svg.selectAll('.node .' + key);
+            return { 'key' : key, 'value' : svg.selectAll('.node .' + key) };
         }, groups);
         var edgeGroups = dictMap(function(key, value) {
-            return svg.selectAll('.link .' + key);
+            return { 'key' : key, 'value' : svg.selectAll('.link .' + key) };
         }, groups);
 
         var keys = dictKeys(groups);
@@ -95,7 +95,9 @@ function Graph() {
      * Splits a set of objects based on the groups they belong to.
      */
     function split(objects, groups) {
-        var result = dictMap(function() { return []; }, groups);
+        var result = dictMap(function(key, value) {
+            return { 'key' : key, 'value' : []};
+        }, groups);
         result[''] = [];
 
         objects.forEach(function(obj) {
@@ -307,31 +309,15 @@ function Graph() {
 }
 
 function dictKeys(dict) {
-    var result = [];
-    for (key in dict) {
-        if (dict.hasOwnProperty(key)) {
-            result.push(key);
-        }
-    }
-    return result;
+    return webster.keys(dict);
 }
 
 function dictMap(fn, dict) {
-    var result = {};
-    for (key in dict) {
-        if (dict.hasOwnProperty(key)) {
-            result[key] = fn(key, dict[key]);
-        }
-    }
-    return result;
+    return webster.map(dict, fn);
 }
 
 function dictForEach(fn, dict) {
-    for (key in dict) {
-        if (dict.hasOwnProperty(key)) {
-            fn(key, dict[key]);
-        }
-    }
+    return webster.each(dict, fn);
 }
 
 /**
