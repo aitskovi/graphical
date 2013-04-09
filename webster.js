@@ -30,7 +30,6 @@ var map = webster.map = function(dict, fn, context) {
 
 var foldl = webster.foldl = function(dict, start, fn, context) {
     if (context != undefined) return foldl(dict, start, fn.bind(context));
-    console.log(start);
     var accumulator = start;
 
     each(dict, function(key, value) {
