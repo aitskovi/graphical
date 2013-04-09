@@ -16,12 +16,12 @@ var each = webster.each = function(dict, fn, context) {
     }
 }
 
-webster.map = function(dict, fn, context) {
-    var bound = context == undefined ? fn : fb.bind(context);
+var map = webster.map = function(dict, fn, context) {
+    if (context != undefined) return map(dict, fn.bind(context));
     mapped = {};
 
     each(dict, function(key, value) {
-        var result = bound(key, value)
+        var result = fn(key, value)
         mapped[result.key] = result.value;
     });
 
@@ -29,11 +29,12 @@ webster.map = function(dict, fn, context) {
 }
 
 var foldl = webster.foldl = function(dict, start, fn, context) {
-    var bound = context == undefined ? fn : fb.bind(context);
+    if (context != undefined) return foldl(dict, start, fn.bind(context));
+    console.log(start);
     var accumulator = start;
 
     each(dict, function(key, value) {
-        accumulator = bound(key, value, accumulator)
+        accumulator = fn(key, value, accumulator)
     });
 
     return accumulator;
@@ -41,13 +42,15 @@ var foldl = webster.foldl = function(dict, start, fn, context) {
 
 webster.keys = function(dict) {
     return foldl(dict, [], function(key, value, accumulator) {
-        return rest.push(key);
+        accumulator.push(key);
+        return accumulator;
     });
 }
 
 webster.values = function(dict) {
     return foldl(dict, [], function(key, value, accumulator) {
-        return rest.push(value);
+        accumulator.push(value);
+        return accumulator;
     });
 }
 
