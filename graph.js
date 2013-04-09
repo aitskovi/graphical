@@ -236,8 +236,7 @@ function Graph() {
     }
 
     function group(objects, group) {
-        if(!(objects instanceof Array)) objects = [objects];
-        else if (objects.length == 0) return;
+        if (!(objects instanceof Array) || objects.legnth == 0) return;
 
         // Generate the group entry if it doesn't exit.
         if (!groups[group]) {
@@ -267,8 +266,7 @@ function Graph() {
     }
 
     function ungroup(objects, group) {
-        if(!(objects instanceof Array)) objects = [objects];
-        else if (objects.length == 0) return;
+        if (!(objects instanceof Array) || objects.length == 0) return;
 
         objects.forEach(function(obj) {
             var index = obj instanceof Array ? indexOfEdge(obj) : indexOfNode(obj);
