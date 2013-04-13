@@ -103,7 +103,7 @@ function Graph() {
         objects.forEach(function(obj) {
             var data = obj.id ? obj.id : [obj.source.id, obj.target.id];
             var key = hash(data);
-            for (group in groups) {
+            for (var group in groups) {
                 if (groups.hasOwnProperty(group)) {
                     if (key in groups[group]) {
                         result[group].push(obj);
@@ -252,7 +252,7 @@ function Graph() {
             var key = hash(obj);
 
             // Remove all other group allegiances.
-            for (group in groups) {
+            for (var group in groups) {
                 if (groups.hasOwnProperty(group)) {
                     if (key in groups[group]) {
                         delete groups[group][key];
