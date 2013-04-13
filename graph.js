@@ -35,20 +35,20 @@ function Graph() {
         var edgeSplit = split(edges, groups);
 
         // For each link-grouping combination we update.
-        groupings['link'] = dictMap(function(group, link) {
+        groupings['link'] = webster.map(groupings['link'], function(group, link) {
             link = link.data(edgeSplit[group], function(d) { return d.source.id + "-" + d.target.id; });
             link.enter().insert("line", ".node").attr("class", "link" + " " +  group);
             link.exit().remove();
             return { 'key' : group, 'value' : link };
-        }, groupings['link']);
+        });
 
         // For each node-grouping cominbation we update.
-        groupings['node'] = dictMap(function(group, node) {
+        groupings['node'] = webster.map(groupings['node'], function(group, node) {
             node = node.data(nodeSplit[group], function(d) { return d.id; });
             node.enter().append("circle").attr("class", function(d) { return "node " + d.id + " " + group; }).attr("r", 8);
             node.exit().remove();
             return { 'key' : group, 'value' : node };
-        }, groupings['node']);
+        });
 
         force.start();
     }
@@ -71,12 +71,12 @@ function Graph() {
 
     function refresh() {
         // Update the groupings.
-        var nodeGroups = dictMap(function(key, value) {
+        var nodeGroups = webster.map(groups, function(key, value) {
             return { 'key' : key, 'value' : svg.selectAll('.node .' + key) };
-        }, groups);
-        var edgeGroups = dictMap(function(key, value) {
+        });
+        var edgeGroups = webster.map(groups, function(key, value) {
             return { 'key' : key, 'value' : svg.selectAll('.link .' + key) };
-        }, groups);
+        });
 
         var keys = webster.keys(groups);
 
@@ -95,9 +95,9 @@ function Graph() {
      * Splits a set of objects based on the groups they belong to.
      */
     function split(objects, groups) {
-        var result = dictMap(function(key, value) {
+        var result = webster.map(groups, function(key, value) {
             return { 'key' : key, 'value' : []};
-        }, groups);
+        });
         result[''] = [];
 
         objects.forEach(function(obj) {
@@ -306,10 +306,6 @@ function Graph() {
             return mutate(ungroup.bind(this, objects, group), immediate);
         },
     }
-}
-
-function dictMap(fn, dict) {
-    return webster.map(dict, fn);
 }
 
 function dictForEach(fn, dict) {
