@@ -311,7 +311,7 @@ function Graph() {
 /**
  * Run a depth first search for the id.
  */
-function dfs(id, graph) {
+function dfs(graph, id) {
     var i = 0;
     var seen = {};
 
@@ -319,21 +319,21 @@ function dfs(id, graph) {
         if (start.id in seen) return null;
 
         seen[start.id] = true;
-        graph.addCoverNode(start.id);
+        graph.group([start.id], 'cover');
 
         if (start.id == id) return start;
 
         return start.children.reduce(function(result, child) {
             if (result) return result;
 
-            graph.addMatchingEdge([start.id, child.id]);
+            graph.group([[start.id, child.id]], 'cover');
             i++;
 
             return dfs(id, child);
         }, null);
     }
 
-    return dfs(id, graph.nodes[0]);
+    return dfs(id, graph.nodes()[0]);
 }
 
 graph = new Graph();
