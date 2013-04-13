@@ -55,18 +55,18 @@ function Graph() {
 
     function tick() {
         // For each link-grouping combo set a proper tick.
-        dictForEach(function(group, link) {
+        webster.each(groupings['link'], function(group, link) {
             link.attr("x1", function(d) { return d.source.x; })
                 .attr("y1", function(d) { return d.source.y; })
                 .attr("x2", function(d) { return d.target.x; })
                 .attr("y2", function(d) { return d.target.y; });
-        }, groupings['link']);
+        });
 
         // For each node-grouping combo set a proper tick.
-        dictForEach(function(group, node) {
+        webster.each(groupings['node'], function(group, node) {
             node.attr("cx", function(d) { return d.x; })
                 .attr("cy", function(d) { return d.y; });
-        }, groupings['node']);
+        });
     }
 
     function refresh() {
@@ -306,10 +306,6 @@ function Graph() {
             return mutate(ungroup.bind(this, objects, group), immediate);
         },
     }
-}
-
-function dictForEach(fn, dict) {
-    return webster.each(dict, fn);
 }
 
 /**
