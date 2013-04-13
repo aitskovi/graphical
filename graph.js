@@ -78,7 +78,7 @@ function Graph() {
             return { 'key' : key, 'value' : svg.selectAll('.link .' + key) };
         }, groups);
 
-        var keys = dictKeys(groups);
+        var keys = webster.keys(groups);
 
         var notall = keys.map(function(key) { return ':not(.' + key + ')'; }).join(' ');
 
@@ -306,10 +306,6 @@ function Graph() {
             return mutate(ungroup.bind(this, objects, group), immediate);
         },
     }
-}
-
-function dictKeys(dict) {
-    return webster.keys(dict);
 }
 
 function dictMap(fn, dict) {
