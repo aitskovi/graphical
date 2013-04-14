@@ -82,8 +82,8 @@ function Graph() {
 
         var notall = keys.map(function(key) { return ':not(.' + key + ')'; }).join(' ');
 
-        nodeGroups[''] = svg.selectAll(".node ");
-        edgeGroups[''] = svg.selectAll(".link");
+        nodeGroups[''] = svg.selectAll(".node " + notall);
+        edgeGroups[''] = svg.selectAll(".link " + notall);
 
         groupings = {
             'node' : nodeGroups,
