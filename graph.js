@@ -238,7 +238,7 @@ function Graph() {
     }
 
     function group(objects, group) {
-        if (!(objects instanceof Array) || objects.legnth == 0) return;
+        if (!(objects instanceof Array) || objects.length == 0) return;
 
         // Generate the group entry if it doesn't exit.
         if (!groups[group]) {
