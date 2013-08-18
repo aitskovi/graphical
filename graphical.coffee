@@ -5,29 +5,37 @@ graphical = {}
 this.graphical = graphical;
 
 class Graph
-    constructor: (vertices, edges) ->
-        @nodes = []
-        @links = []
+    # Nodes/Vertices in our graph.
+    nodes = []
 
+    # Edges/Links in our graph.
+    links = []
+
+    force = null
+    svg = null
+    node = null
+    link = null
+
+    constructor: (vertices, edges) ->
         @add(vertices)
         @connect(edges)
 
-        @init()
-        @render()
+        init()
+        render()
 
     vertices: ->
-        node.id for node in @nodes
+        node.id for node in nodes
 
     edges: ->
         return @links
 
     contains: (id) ->
-        (node for node in @nodes when node.id is id).length > 0
+        (node for node in nodes when node.id is id).length > 0
 
     add: (ids) ->
         for id in ids
             if !@contains(id)
-                @nodes = @nodes.concat([{id: id}])
+                nodes = nodes.concat([{id: id}])
 
     remove: (ids) ->
 
@@ -35,44 +43,44 @@ class Graph
 
     disconnect: (edges) ->
 
-    render: ->
-        @link = @link.data(@force.links(), (d) -> d.source.id + "-" + d.target.id)
-        @link.enter().insert("line", ".node").attr("class", "link")
-        @link.exit().remove()
+    render = ->
+        link = link.data(force.links(), (d) -> d.source.id + "-" + d.target.id)
+        link.enter().insert("line", ".node").attr("class", "link")
+        link.exit().remove()
 
-        @node = @node.data(@force.nodes(), (d) -> d.id)
-        @node.enter().append("circle").attr("class", (d) -> "node " + d.id).attr("r", 8);
-        @node.exit().remove()
+        node = node.data(force.nodes(), (d) -> d.id)
+        node.enter().append("circle").attr("class", (d) -> "node " + d.id).attr("r", 8);
+        node.exit().remove()
 
-        @force.start()
+        force.start()
 
-    tick: =>
+    tick = ->
         # Tick function for d3.js
-        @node.attr("cx", (d) -> d.x)
+        node.attr("cx", (d) -> d.x)
              .attr("cy", (d) -> d.y)
 
-        @link.attr("x1", (d) -> d.source.x)
+        link.attr("x1", (d) -> d.source.x)
              .attr("y1", (d) -> d.source.y)
              .attr("x2", (d) -> d.target.x)
              .attr("y0", (d) -> d.target.y)
 
-    init:  ->
+    init =  ->
         width = 960
         height = 500
-        @force = d3.layout.force()
-            .nodes(@nodes)
-            .links(@links)
+        force = d3.layout.force()
+            .nodes(nodes)
+            .links(links)
             .charge(-400)
             .linkDistance(120)
             .size([width, height])
-            .on("tick", @tick)
+            .on("tick", tick)
 
-        @svg = d3.select("body").append("svg")
+        svg = d3.select("body").append("svg")
             .attr("width", width)
             .attr("height", height)
 
-        @node = @svg.selectAll(".node")
-        @link = @svg.selectAll(".link")
+        node = svg.selectAll(".node")
+        link = svg.selectAll(".link")
 
 # Export a way to construct the graph.
 graphical.graph = (nodes = [], edges = []) -> new Graph(nodes, edges)
