@@ -35,13 +35,9 @@ class Graph
         @link.enter().insert("line", ".node").attr("class", "link")
         @link.exit().remove()
 
-        console.log("Node 2" )
-        console.log(@node)
         @node = @node.data(@force.nodes(), (d) -> d.id)
         @node.enter().append("circle").attr("class", (d) -> "node " + d.id).attr("r", 8);
         @node.exit().remove()
-        console.log("Node 3")
-        console.log(@node)
 
         @force.start()
 
@@ -71,8 +67,6 @@ class Graph
             .attr("height", height)
 
         @node = @svg.selectAll(".node")
-        console.log("Node 1");
-        console.log(@node)
         @link = @svg.selectAll(".link")
 
 # Export a way to construct the graph.
