@@ -5,24 +5,24 @@ graphical = {}
 this.graphical = graphical;
 
 class Graph
-    constructor: (nodes, edges) ->
+    constructor: (vertices, edges) ->
         @nodes = []
-        @edges = []
+        @links = []
 
-        @add(nodes)
+        @add(vertices)
         @connect(edges)
 
         @init()
         @render()
 
-    nodes: ->
-        return @nodes
+    vertices: ->
+        node.id for node in @nodes
 
     edges: ->
-        return @edges
+        return @links
 
     contains: (id) ->
-        (node for node in @nodes when node.id == id).length > 0
+        (node for node in @nodes when node.id is id).length > 0
 
     add: (ids) ->
         for id in ids
@@ -61,7 +61,7 @@ class Graph
         height = 500
         @force = d3.layout.force()
             .nodes(@nodes)
-            .links(@edges)
+            .links(@links)
             .charge(-400)
             .linkDistance(120)
             .size([width, height])
