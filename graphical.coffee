@@ -21,8 +21,13 @@ class Graph
     edges: ->
         return @edges
 
+    contains: (id) ->
+        (node for node in @nodes when node.id == id).length > 0
+
     add: (ids) ->
-        @nodes = @nodes.concat({id: id} for id in ids)
+        for id in ids
+            if !@contains(id)
+                @nodes = @nodes.concat([{id: id}])
 
     remove: (ids) ->
 
